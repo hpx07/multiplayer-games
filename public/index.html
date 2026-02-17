@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Process Manager v4.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Consolas','Courier New',monospace;background:#0C0C0C;color:#CCCCCC;font-size:13px;overflow:hidden;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:#0C0C0C;}
+::-webkit-scrollbar-thumb{background:#1E1E1E;}
+::-webkit-scrollbar-thumb:hover{background:#00FF00;}
+
+/* LOGIN */
+#loginScreen{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;}
+.loginBox{border:1px solid #1E1E1E;padding:35px 40px;background:#0C0C0C;width:420px;}
+.loginLogo{color:#00FF00;font-size:11px;margin-bottom:25px;line-height:1.8;}
+.loginBox label{color:#888;font-size:11px;display:block;margin-bottom:6px;}
+.loginBox input{width:100%;padding:9px;background:#0C0C0C;border:1px solid #1E1E1E;color:#00FF00;font-family:'Consolas',monospace;font-size:13px;margin-bottom:10px;}
+.loginBox input:focus{outline:none;border-color:#00FF00;}
+.errMsg{color:#FF5555;font-size:11px;min-height:16px;margin-bottom:10px;}
+.loginBtn{width:100%;padding:10px;background:#1E1E1E;border:1px solid #00FF00;color:#00FF00;cursor:pointer;font-family:'Consolas',monospace;font-size:12px;letter-spacing:1px;}
+.loginBtn:hover{background:#00FF00;color:#0C0C0C;}
+
+/* APP */
+#app{display:none;height:100vh;flex-direction:column;}
+#topbar{background:#0C0C0C;border-bottom:1px solid #1E1E1E;padding:5px 15px;display:flex;align-items:center;justify-content:space-between;font-size:11px;min-height:30px;}
+#topbar .tl{color:#00FF00;}
+#topbar .tr{color:#555;display:flex;gap:18px;}
+#topbar .tr span{cursor:pointer;}
+#topbar .tr span:hover{color:#00FF00;}
+#mainLayout{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+#sidebar{width:210px;background:#0C0C0C;border-right:1px solid #1E1E1E;padding:10px;display:flex;flex-direction:column;overflow-y:auto;gap:14px;}
+.sideTitle{color:#444;font-size:10px;letter-spacing:1px;border-bottom:1px solid #111;padding-bottom:3px;margin-bottom:6px;}
+.playerItem{color:#00FF00;font-size:11px;padding:2px 0;}
+.playerItem.busy{color:#FFD700;}
+.lbItem{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;}
+.lbItem .pts{color:#00FF00;}
+.sideBtn{width:100%;padding:6px 8px;background:#0C0C0C;border:1px solid #1E1E1E;color:#555;cursor:pointer;font-family:'Consolas',monospace;font-size:11px;text-align:left;margin-top:3px;}
+.sideBtn:hover{border-color:#00FF00;color:#00FF00;}
+
+/* CONTENT */
+#content{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* GAME SELECT */
+#gameSelect{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;}
+.gsTitle{color:#00FF00;font-size:12px;letter-spacing:3px;}
+.gsCards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.gsCard{width:175px;border:1px solid #1E1E1E;padding:22px 15px;cursor:pointer;text-align:center;background:#0C0C0C;transition:border-color 0.15s;}
+.gsCard:hover{border-color:#00FF00;background:#040f04;}
+.gsIcon{font-size:32px;margin-bottom:10px;}
+.gsName{color:#00FF00;font-size:12px;letter-spacing:1px;margin-bottom:5px;}
+.gsDesc{color:#444;font-size:10px;line-height:1.6;}
+
+/* PANELS */
+.panel{flex:1;display:none;flex-direction:column;overflow:hidden;}
+.panel.active{display:flex;}
+.panelHead{padding:8px 14px;border-bottom:1px solid #1E1E1E;display:flex;align-items:center;justify-content:space-between;font-size:11px;min-height:32px;}
+.panelHead .ph{color:#00FF00;}
+.backBtn{padding:4px 10px;background:#0C0C0C;border:1px solid #1E1E1E;color:#555;cursor:pointer;font-family:'Consolas',monospace;font-size:10px;}
+.backBtn:hover{border-color:#00FF00;color:#00FF00;}
+
+/* SHARED BUTTONS */
+.btn{padding:10px 24px;background:#0C0C0C;border:1px solid #00FF00;color:#00FF00;cursor:pointer;font-family:'Consolas',monospace;font-size:12px;}
+.btn:hover{background:#00FF00;color:#0C0C0C;}
+.btn:disabled{border-color:#222;color:#222;cursor:not-allowed;background:#0C0C0C;}
+.btn.danger{border-color:#FF5555;color:#FF5555;}
+.btn.danger:hover{background:#FF5555;color:#0C0C0C;}
+
+/* ── TTT ── */
+#tttLobby{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;}
+#tttLobby .lmsg{color:#444;font-size:12px;}
+.tttBtns{display:flex;gap:14px;}
+#tttGame{flex:1;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+#tttGame.active{display:flex;}
+.tttInfo{text-align:center;font-size:12px;}
+.tttInfo .vs{color:#FFD700;margin:0 8px;}
+.tttTurn{font-size:11px;letter-spacing:1px;color:#00FF00;}
+.tttBoard{display:grid;grid-template-columns:repeat(3,90px);grid-template-rows:repeat(3,90px);gap:2px;background:#1E1E1E;padding:2px;}
+.tttCell{background:#0C0C0C;display:flex;align-items:center;justify-content:center;font-size:42px;cursor:pointer;color:#00FF00;font-weight:bold;border:1px solid #111;}
+.tttCell:hover:not(.filled){background:#040f04;}
+.tttCell.filled{cursor:not-allowed;}
+.tttCell.O{color:#FF5555;}
+
+/* ── BINGO ── */
+#bingoLobby{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;}
+#bingoLobby h3{color:#00FF00;font-size:12px;letter-spacing:2px;}
+#bingoLobby p{color:#444;font-size:11px;}
+#bingoGame{flex:1;display:none;flex-direction:row;overflow:hidden;}
+#bingoGame.active{display:flex;}
+#bingoLeft{width:300px;padding:12px;border-right:1px solid #1E1E1E;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+.bingoHdr{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:2px;}
+.bingoHdrCell{background:#040f04;color:#00FF00;text-align:center;padding:5px 0;font-size:11px;font-weight:bold;letter-spacing:1px;}
+.bingoCard{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:#1E1E1E;padding:2px;}
+.bCell{background:#0C0C0C;color:#CCCCCC;text-align:center;padding:9px 4px;font-size:12px;cursor:pointer;border:1px solid #111;line-height:1;}
+.bCell:hover:not(.marked){background:#040f04;}
+.bCell.marked{background:#003300;color:#00FF00;border-color:#00FF00;}
+.bCell.free{background:#001a00;color:#00FF00;font-size:9px;border-color:#00FF00;}
+.bCell.called{color:#FFD700;}
+#bingoRight{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+.callDisplay{text-align:center;padding:15px;border:1px solid #1E1E1E;background:#040404;}
+.callDisplay .clbl{color:#444;font-size:10px;margin-bottom:5px;}
+.callDisplay .cltr{color:#FFD700;font-size:16px;}
+.callDisplay .cnum{font-size:52px;color:#00FF00;font-weight:bold;line-height:1;}
+.calledLog{border:1px solid #1E1E1E;padding:10px;max-height:130px;overflow-y:auto;}
+.calledLogTitle{color:#444;font-size:10px;margin-bottom:6px;}
+.calledNums{display:flex;flex-wrap:wrap;gap:3px;}
+.cnum-item{padding:2px 6px;background:#1E1E1E;color:#888;font-size:10px;}
+.cnum-item.recent{background:#003300;color:#00FF00;border:1px solid #00FF00;}
+.hostCtrl{border:1px solid #1E1E1E;padding:10px;}
+.hostCtrlTitle{color:#444;font-size:10px;margin-bottom:8px;}
+.hostBtns{display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
+.hostBtn{padding:7px 13px;background:#0C0C0C;border:1px solid #00FF00;color:#00FF00;cursor:pointer;font-family:'Consolas',monospace;font-size:11px;}
+.hostBtn:hover{background:#00FF00;color:#0C0C0C;}
+.hostBtn:disabled{border-color:#222;color:#222;cursor:not-allowed;}
+.hostBtn.danger{border-color:#FF5555;color:#FF5555;}
+.hostBtn.danger:hover{background:#FF5555;color:#0C0C0C;}
+.autoSel{background:#0C0C0C;border:1px solid #1E1E1E;color:#00FF00;padding:6px 8px;font-family:'Consolas',monospace;font-size:11px;cursor:pointer;}
+.autoSel:focus{outline:none;border-color:#00FF00;}
+.winnersBox{border:1px solid #FFD700;padding:10px;}
+.winnersTitle{color:#FFD700;font-size:10px;margin-bottom:6px;}
+.winnerItem{color:#FFD700;font-size:12px;padding:2px 0;}
+
+/* ── DOTS & BOXES ── */
+#dabLobby{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;}
+#dabLobby h3{color:#00FF00;font-size:12px;letter-spacing:2px;}
+#dabLobby p{color:#444;font-size:11px;line-height:1.7;}
+.dabSetup{border:1px solid #1E1E1E;padding:20px;text-align:left;min-width:320px;}
+.dabSetup label{color:#888;font-size:11px;display:block;margin-bottom:5px;margin-top:12px;}
+.dabSetup label:first-child{margin-top:0;}
+.dabSel{width:100%;background:#0C0C0C;border:1px solid #1E1E1E;color:#00FF00;padding:8px;font-family:'Consolas',monospace;font-size:12px;margin-bottom:3px;}
+.dabSel:focus{outline:none;border-color:#00FF00;}
+.dabQueueInfo{color:#444;font-size:11px;margin-top:6px;min-height:16px;}
+#dabGame{flex:1;display:none;flex-direction:column;overflow:hidden;}
+#dabGame.active{display:flex;}
+#dabGameBody{flex:1;display:flex;overflow:hidden;}
+#dabCanvas{flex:1;display:flex;align-items:center;justify-content:center;background:#0C0C0C;overflow:auto;padding:10px;}
+#dabSidebar{width:190px;border-left:1px solid #1E1E1E;padding:12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.dabScoreCard{border:1px solid #1E1E1E;padding:8px;}
+.dabScoreTitle{font-size:10px;color:#444;margin-bottom:8px;letter-spacing:1px;}
+.dabPlayerScore{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px;}
+.dabDot{width:10px;height:10px;border-radius:0;}
+.dabPlayerScore.active-turn{background:#040f04;padding:4px 6px;margin:-4px -6px;}
+.dabTurnInfo{font-size:11px;color:#00FF00;padding:8px;border:1px solid #1E1E1E;text-align:center;}
+
+/* Canvas grid */
+.dabGrid{position:relative;}
+.dabDotEl{position:absolute;width:10px;height:10px;background:#CCCCCC;border-radius:50%;transform:translate(-50%,-50%);}
+.dabLineH,.dabLineV{position:absolute;cursor:pointer;background:transparent;}
+.dabLineH{height:10px;transform:translateY(-50%);}
+.dabLineV{width:10px;transform:translateX(-50%);}
+.dabLineH:hover,.dabLineV:hover{background:rgba(0,255,0,0.2);}
+.dabLineH.drawn,.dabLineV.drawn{cursor:default;}
+.dabLineH.drawn:hover,.dabLineV.drawn:hover{background:transparent;}
+.dabBox{position:absolute;}
+
+/* RESULT MODAL */
+#resultModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(12,12,12,0.96);display:none;align-items:center;justify-content:center;z-index:9999;}
+#resultModal.show{display:flex;}
+.resultBox{border:2px solid #00FF00;padding:35px 45px;text-align:center;background:#0C0C0C;min-width:300px;}
+.resultBox.loss{border-color:#FF5555;}
+.resultBox.draw{border-color:#FFD700;}
+.resultTitle{font-size:26px;margin-bottom:8px;letter-spacing:2px;color:#00FF00;}
+.resultBox.loss .resultTitle{color:#FF5555;}
+.resultBox.draw .resultTitle{color:#FFD700;}
+.resultSub{color:#444;font-size:11px;margin-bottom:20px;}
+.resultScores{margin-bottom:20px;font-size:12px;}
+.resultScoreRow{padding:4px 0;display:flex;justify-content:space-between;gap:30px;}
+.rBtns{display:flex;gap:10px;justify-content:center;}
+.rBtn{padding:9px 22px;background:#0C0C0C;border:1px solid #00FF00;color:#00FF00;cursor:pointer;font-family:'Consolas',monospace;font-size:11px;}
+.rBtn:hover{background:#00FF00;color:#0C0C0C;}
+
+/* TOAST */
+#toast{position:fixed;top:12px;right:12px;padding:10px 16px;background:#1E1E1E;border:1px solid #00FF00;color:#00FF00;font-size:11px;z-index:9998;display:none;max-width:270px;line-height:1.5;}
+#toast.show{display:block;}
+#toast.err{border-color:#FF5555;color:#FF5555;}
+#toast.warn{border-color:#FFD700;color:#FFD700;}
+
+/* CHAT */
+#chatWrap{position:fixed;bottom:0;right:0;width:270px;background:#0C0C0C;border:1px solid #1E1E1E;display:none;flex-direction:column;z-index:200;}
+#chatWrap.open{display:flex;}
+#chatHead{padding:7px 11px;background:#111;color:#00FF00;font-size:11px;cursor:pointer;display:flex;justify-content:space-between;}
+#chatMsgs{height:170px;overflow-y:auto;padding:8px;font-size:11px;}
+.chatMsg{margin-bottom:5px;line-height:1.5;}
+.chatMsg .cu{color:#00FF00;}
+#chatFoot{display:flex;border-top:1px solid #1E1E1E;}
+#chatFoot input{flex:1;padding:7px;background:#0C0C0C;border:none;color:#00FF00;font-family:'Consolas',monospace;font-size:11px;}
+#chatFoot input:focus{outline:none;}
+#chatFoot button{padding:7px 11px;background:#111;border:none;color:#00FF00;cursor:pointer;font-size:11px;}
+#chatFoot button:hover{background:#00FF00;color:#0C0C0C;}
+
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="loginBox">
+    <div class="loginLogo">
+      SYSTEM PROCESS MANAGER v4.0<br>
+      ──────────────────────────────<br>
+      <span style="color:#333">Network Module | LAN Mode | 3 Games</span>
+    </div>
+    <label>IDENTIFIER</label>
+    <input type="text" id="unInput" placeholder="Enter username..." maxlength="15" autocomplete="off">
+    <div class="errMsg" id="loginErr"></div>
+    <button class="loginBtn" onclick="doLogin()">▶ INITIALIZE SESSION</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topbar">
+    <div class="tl">SPM v4.0 &nbsp;|&nbsp; <span id="tbUser"></span></div>
+    <div class="tr">
+      <span onclick="toggleChat()">CHAT</span>
+      <span onclick="showGameSelect()">MENU</span>
+    </div>
+  </div>
+  <div id="mainLayout">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div>
+        <div class="sideTitle">ONLINE (<span id="onlineCount">0</span>)</div>
+        <div id="sidePlayerList"></div>
+      </div>
+      <div>
+        <div class="sideTitle">TTT RANKS</div>
+        <div id="sideTTTLb"></div>
+      </div>
+      <div>
+        <div class="sideTitle">BINGO RANKS</div>
+        <div id="sideBingoLb"></div>
+      </div>
+      <div>
+        <div class="sideTitle">D&amp;B RANKS</div>
+        <div id="sideDABLb"></div>
+      </div>
+      <div style="margin-top:auto;">
+        <button class="sideBtn" onclick="showGameSelect()">◀ GAME MENU</button>
+        <button class="sideBtn" onclick="toggleChat()">■ CHAT</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="content">
+
+      <!-- GAME SELECT -->
+      <div id="gameSelect" style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;">
+        <div class="gsTitle">SELECT MODULE</div>
+        <div class="gsCards">
+          <div class="gsCard" onclick="loadTTT()">
+            <div class="gsIcon">✕○</div>
+            <div class="gsName">TIC-TAC-TOE</div>
+            <div class="gsDesc">Classic 1v1 battles.<br>Quick match or<br>tournament bracket.</div>
+          </div>
+          <div class="gsCard" onclick="loadBingo()">
+            <div class="gsIcon">🅱</div>
+            <div class="gsName">BINGO</div>
+            <div class="gsDesc">Everyone plays together.<br>Host calls numbers.<br>First Bingo wins!</div>
+          </div>
+          <div class="gsCard" onclick="loadDAB()">
+            <div class="gsIcon">⊞</div>
+            <div class="gsName">DOTS &amp; BOXES</div>
+            <div class="gsDesc">Draw lines, complete<br>boxes, score points.<br>2–4 players.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TTT PANEL -->
+      <div id="tttPanel" class="panel">
+        <div class="panelHead">
+          <div class="ph">MODULE: TIC-TAC-TOE</div>
+          <button class="backBtn" onclick="showGameSelect()">◀ BACK</button>
+        </div>
+        <div id="tttLobby">
+          <div class="lmsg" id="tttMsg">Ready — pick a mode</div>
+          <div class="tttBtns">
+            <button class="btn" id="tttQMBtn" onclick="ttt_findMatch()">QUICK MATCH</button>
+            <button class="btn" onclick="ttt_startTournament()">TOURNAMENT</button>
+          </div>
+        </div>
+        <div id="tttGame">
+          <div class="tttInfo">
+            <span id="tttP1"></span><span class="vs">VS</span><span id="tttP2"></span>
+            &nbsp;|&nbsp; YOU: <span id="tttSym" style="color:#00FF00;"></span>
+          </div>
+          <div class="tttTurn" id="tttTurn">...</div>
+          <div class="tttBoard" id="tttBoard">
+            <div class="tttCell" data-i="0" onclick="ttt_move(0)"></div>
+            <div class="tttCell" data-i="1" onclick="ttt_move(1)"></div>
+            <div class="tttCell" data-i="2" onclick="ttt_move(2)"></div>
+            <div class="tttCell" data-i="3" onclick="ttt_move(3)"></div>
+            <div class="tttCell" data-i="4" onclick="ttt_move(4)"></div>
+            <div class="tttCell" data-i="5" onclick="ttt_move(5)"></div>
+            <div class="tttCell" data-i="6" onclick="ttt_move(6)"></div>
+            <div class="tttCell" data-i="7" onclick="ttt_move(7)"></div>
+            <div class="tttCell" data-i="8" onclick="ttt_move(8)"></div>
+          </div>
+          <button class="backBtn" onclick="ttt_backToLobby()">◀ LOBBY</button>
+        </div>
+      </div>
+
+      <!-- BINGO PANEL -->
+      <div id="bingoPanel" class="panel">
+        <div class="panelHead">
+          <div class="ph">MODULE: BINGO &nbsp;|&nbsp; <span id="bingoStatus" style="color:#444;">LOBBY</span></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span id="bingoRoomInfo" style="color:#444;font-size:10px;"></span>
+            <button class="backBtn" onclick="bingo_leave()">◀ LEAVE</button>
+          </div>
+        </div>
+        <div id="bingoLobby">
+          <h3>BINGO ROOM</h3>
+          <p>Join the room to receive your card.<br>First player becomes the HOST.</p>
+          <button class="btn" onclick="bingo_join()">JOIN ROOM</button>
+        </div>
+        <div id="bingoGame">
+          <div id="bingoLeft">
+            <div style="color:#00FF00;font-size:10px;letter-spacing:1px;">YOUR BINGO CARD</div>
+            <div class="bingoHdr">
+              <div class="bingoHdrCell">B</div><div class="bingoHdrCell">I</div>
+              <div class="bingoHdrCell">N</div><div class="bingoHdrCell">G</div>
+              <div class="bingoHdrCell">O</div>
+            </div>
+            <div class="bingoCard" id="bingoCard"></div>
+            <button class="btn" id="bingoClaimBtn" onclick="bingo_claim()" disabled style="width:100%;">🎉 CLAIM BINGO!</button>
+          </div>
+          <div id="bingoRight">
+            <div class="callDisplay">
+              <div class="clbl">CURRENT NUMBER</div>
+              <div class="cltr" id="bCallLetter">-</div>
+              <div class="cnum" id="bCallNum">--</div>
+            </div>
+            <div class="hostCtrl" id="hostCtrl" style="display:none;">
+              <div class="hostCtrlTitle">HOST CONTROLS</div>
+              <div class="hostBtns">
+                <button class="hostBtn" id="bStartBtn" onclick="bingo_startGame()">▶ START</button>
+                <button class="hostBtn" id="bCallBtn" onclick="bingo_callNumber()" disabled>CALL NUMBER</button>
+                <select class="autoSel" id="autoSel" onchange="bingo_setAutoCall(this.value)">
+                  <option value="0">Manual</option>
+                  <option value="5">Auto 5s</option>
+                  <option value="10">Auto 10s</option>
+                  <option value="15">Auto 15s</option>
+                </select>
+                <button class="hostBtn danger" onclick="bingo_resetGame()">↺ RESET</button>
+              </div>
+            </div>
+            <div class="winnersBox" id="bWinnersBox" style="display:none;">
+              <div class="winnersTitle">WINNERS</div>
+              <div id="bWinnersList"></div>
+            </div>
+            <div class="calledLog">
+              <div class="calledLogTitle">CALLED (<span id="bCalledCount">0</span>/75)</div>
+              <div class="calledNums" id="bCalledNums"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOTS & BOXES PANEL -->
+      <div id="dabPanel" class="panel">
+        <div class="panelHead">
+          <div class="ph">MODULE: DOTS &amp; BOXES &nbsp;|&nbsp; <span id="dabStatus" style="color:#444;">LOBBY</span></div>
+          <button class="backBtn" id="dabBackBtn" onclick="dab_back()">◀ BACK</button>
+        </div>
+
+        <!-- DAB Lobby -->
+        <div id="dabLobby">
+          <h3>DOTS &amp; BOXES</h3>
+          <p>Draw lines between dots.<br>Complete a box = score a point + extra turn.<br>Most boxes at the end wins!</p>
+          <div class="dabSetup">
+            <label>GRID SIZE</label>
+            <select class="dabSel" id="dabGridSize">
+              <option value="3">3×3 (9 boxes) — Quick</option>
+              <option value="4" selected>4×4 (16 boxes) — Standard</option>
+              <option value="5">5×5 (25 boxes) — Large</option>
+              <option value="6">6×6 (36 boxes) — Epic</option>
+            </select>
+            <label>MAX PLAYERS</label>
+            <select class="dabSel" id="dabMaxPlayers">
+              <option value="2">2 Players</option>
+              <option value="3">3 Players</option>
+              <option value="4">4 Players</option>
+            </select>
+            <div class="dabQueueInfo" id="dabQueueInfo"></div>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn" id="dabJoinBtn" onclick="dab_joinQueue()">JOIN QUEUE</button>
+            <button class="btn" id="dabStartBtn" onclick="dab_startGame()" style="display:none;">START GAME</button>
+            <button class="btn danger" id="dabCancelBtn" onclick="dab_cancelQueue()" style="display:none;">CANCEL</button>
+          </div>
+        </div>
+
+        <!-- DAB Game Area -->
+        <div id="dabGame">
+          <div class="panelHead" style="border-top:none;">
+            <div id="dabTurnDisplay" style="color:#00FF00;font-size:11px;">...</div>
+            <button class="backBtn" onclick="dab_leaveGame()">LEAVE GAME</button>
+          </div>
+          <div id="dabGameBody">
+            <div id="dabCanvas">
+              <div id="dabGrid" class="dabGrid"></div>
+            </div>
+            <div id="dabSidebar">
+              <div class="dabScoreCard">
+                <div class="dabScoreTitle">SCORES</div>
+                <div id="dabScores"></div>
+              </div>
+              <div class="dabTurnInfo" id="dabTurnInfo">Waiting...</div>
+              <div style="color:#444;font-size:10px;line-height:1.7;">
+                Complete the 4th side of a box to claim it and get an extra turn!
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /mainLayout -->
+</div><!-- /app -->
+
+<!-- RESULT MODAL -->
+<div id="resultModal">
+  <div class="resultBox" id="resultBox">
+    <div class="resultTitle" id="resultTitle">YOU WIN!</div>
+    <div class="resultSub" id="resultSub"></div>
+    <div class="resultScores" id="resultScores"></div>
+    <div class="rBtns">
+      <button class="rBtn" onclick="closeResult()">BACK TO LOBBY</button>
+      <button class="rBtn" id="rematchBtn" onclick="requestRematch()">REMATCH</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CHAT -->
+<div id="chatWrap">
+  <div id="chatHead" onclick="toggleChat()">NETWORK CHAT <span>▼</span></div>
+  <div id="chatMsgs"></div>
+  <div id="chatFoot">
+    <input type="text" id="chatIn" placeholder="Message..." maxlength="120">
+    <button onclick="sendChat()">▶</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ═══════════════════════════ STATE ═══════════════════════════
+let socket, myUsername;
+
+// TTT
+let tttGameId=null, tttSym=null, tttMyTurn=false;
+
+// Bingo
+let myCard=[], myMarked=[], amHost=false, bingoActive=false;
+
+// Dots & Boxes
+let dabRoomId=null, myPlayerIndex=-1, myColor='#00FF00';
+let dabGridSize=4, dabCurrentState=null;
+let inDabQueue=false;
+
+const CELL_SIZE = 60; // px per grid unit
+
+// ═══════════════════════════ LOGIN ═══════════════════════════
+function doLogin(){
+  const un=document.getElementById('unInput').value.trim();
+  if(!un) return setLoginErr('Username required');
+  socket=io();
+  socket.on('joined',d=>{
+    myUsername=d.username;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('tbUser').textContent=myUsername;
+    setupListeners();
+  });
+  socket.on('joinError',msg=>setLoginErr(msg));
+  socket.emit('join',un);
+}
+function setLoginErr(m){document.getElementById('loginErr').textContent=m;}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('unInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+});
+
+// ═══════════════════════════ SOCKET LISTENERS ═══════════════════════════
+function setupListeners(){
+  socket.on('lobbyUpdate',d=>updateSidebar(d));
+  socket.on('chatMessage',d=>appendChat(d.username,d.message));
+  socket.on('error',msg=>toast(msg,'err'));
+
+  // TTT
+  socket.on('ttt_waiting',msg=>{
+    document.getElementById('tttMsg').textContent=msg;
+    document.getElementById('tttQMBtn').textContent='CANCEL';
+    document.getElementById('tttQMBtn').onclick=ttt_cancel;
+  });
+  socket.on('ttt_searchCancelled',()=>{
+    document.getElementById('tttMsg').textContent='Ready — pick a mode';
+    document.getElementById('tttQMBtn').textContent='QUICK MATCH';
+    document.getElementById('tttQMBtn').onclick=ttt_findMatch;
+  });
+  socket.on('ttt_gameStart',d=>{
+    tttGameId=d.gameId; tttSym=d.symbol; tttMyTurn=d.yourTurn;
+    document.getElementById('tttSym').textContent=tttSym;
+    ttt_showBoard(); ttt_resetCells();
+    toast('Game started! You are '+tttSym);
+  });
+  socket.on('ttt_gameUpdate',d=>ttt_updateBoard(d));
+  socket.on('ttt_gameEnd',d=>setTimeout(()=>showTTTResult(d.result,d.gameId),400));
+  socket.on('ttt_opponentDisconnected',()=>{toast('Opponent left','warn');ttt_backToLobby();});
+  socket.on('ttt_rematchRequest',reqId=>{
+    if(confirm('Rematch request! Accept?')) socket.emit('ttt_acceptRematch',reqId);
+  });
+  socket.on('ttt_tournamentStart',d=>toast('Tournament! '+d.bracket.length+' matches running.'));
+
+  // BINGO
+  socket.on('bingo_youAreHost',()=>{amHost=true;document.getElementById('hostCtrl').style.display='block';toast('You are HOST!','warn');});
+  socket.on('bingo_cardAssigned',d=>{
+    myCard=d.card; myMarked=d.markedNumbers||Array(25).fill(null).map((_,i)=>i===12?true:null);
+    bingoActive=d.gameActive; amHost=d.isHost;
+    showBingoGame(); renderCard();
+    if(amHost)document.getElementById('hostCtrl').style.display='block';
+    if(d.calledNumbers&&d.calledNumbers.length>0){
+      d.calledNumbers.forEach((n,i)=>renderCalledNum(n,i===d.calledNumbers.length-1));
+      document.getElementById('bCalledCount').textContent=d.calledNumbers.length;
+    }
+    if(bingoActive){
+      document.getElementById('bStartBtn').disabled=true;
+      document.getElementById('bCallBtn').disabled=false;
+      document.getElementById('bingoClaimBtn').disabled=false;
+      document.getElementById('bingoStatus').textContent='ACTIVE';
+    }
+  });
+  socket.on('bingo_gameStarted',()=>{
+    bingoActive=true;
+    myMarked=Array(25).fill(null).map((_,i)=>i===12?true:null);
+    renderCard(); clearCalledNums();
+    document.getElementById('bCallLetter').textContent='-';
+    document.getElementById('bCallNum').textContent='--';
+    document.getElementById('bStartBtn').disabled=true;
+    document.getElementById('bCallBtn').disabled=false;
+    document.getElementById('bingoClaimBtn').disabled=false;
+    document.getElementById('bingoStatus').textContent='ACTIVE';
+    document.getElementById('bWinnersBox').style.display='none';
+    document.getElementById('bWinnersList').innerHTML='';
+    toast('BINGO started! Good luck!');
+  });
+  socket.on('bingo_numberCalled',d=>{
+    renderCalledNum(d.number,true);
+    document.getElementById('bCalledCount').textContent=d.calledNumbers.length;
+    const ltr=bingoLetter(d.number);
+    document.getElementById('bCallLetter').textContent=ltr;
+    document.getElementById('bCallNum').textContent=d.number;
+    const idx=myCard.indexOf(d.number);
+    if(idx!==-1&&!myMarked[idx]){
+      myMarked[idx]=true;
+      socket.emit('bingo_markNumber',d.number);
+      renderCard();
+      toast('✓ '+ltr+d.number+' on your card!');
+    }
+  });
+  socket.on('bingo_markConfirmed',d=>{myMarked[d.index]=true;renderCard();});
+  socket.on('bingo_winner',d=>{
+    document.getElementById('bWinnersBox').style.display='block';
+    const wl=document.getElementById('bWinnersList');
+    const pos=['🥇','🥈','🥉'][d.position-1]||d.position+'.';
+    wl.innerHTML+=`<div class="winnerItem">${pos} ${d.username}</div>`;
+    toast(d.username===myUsername?'🎉 YOU GOT BINGO! #'+d.position:d.username+' got BINGO! (#'+d.position+')','warn');
+  });
+  socket.on('bingo_validClaim',()=>toast('✓ BINGO confirmed!','warn'));
+  socket.on('bingo_invalidClaim',m=>toast(m,'err'));
+  socket.on('bingo_gameEnded',d=>{
+    bingoActive=false;
+    document.getElementById('bingoStatus').textContent='GAME OVER';
+    document.getElementById('bCallBtn').disabled=true;
+    document.getElementById('bingoClaimBtn').disabled=true;
+    if(amHost)document.getElementById('bStartBtn').disabled=false;
+    toast('Game over! Winners: '+d.winners.join(', '));
+  });
+  socket.on('bingo_gameReset',()=>{
+    bingoActive=false;
+    myMarked=Array(25).fill(null).map((_,i)=>i===12?true:null);
+    clearCalledNums(); renderCard();
+    document.getElementById('bCallLetter').textContent='-';
+    document.getElementById('bCallNum').textContent='--';
+    document.getElementById('bStartBtn').disabled=false;
+    document.getElementById('bCallBtn').disabled=true;
+    document.getElementById('bingoClaimBtn').disabled=true;
+    document.getElementById('bingoStatus').textContent='LOBBY';
+    document.getElementById('bWinnersBox').style.display='none';
+    document.getElementById('autoSel').value='0';
+    toast('Game reset. New cards assigned.');
+    socket.emit('bingo_joinRoom');
+  });
+  socket.on('bingo_roomUpdate',d=>{
+    document.getElementById('bingoRoomInfo').textContent=d.playerCount+' player(s)';
+    if(amHost&&!d.gameActive)document.getElementById('bStartBtn').disabled=d.playerCount<2;
+  });
+  socket.on('bingo_autoCallUpdated',v=>toast(v>0?'Auto-call every '+v+'s':'Manual call mode'));
+
+  // DOTS & BOXES
+  socket.on('dab_queued',d=>{
+    inDabQueue=true;
+    document.getElementById('dabQueueInfo').textContent='In queue... ('+d.position+' waiting)';
+    document.getElementById('dabJoinBtn').style.display='none';
+    document.getElementById('dabStartBtn').style.display='inline-block';
+    document.getElementById('dabCancelBtn').style.display='inline-block';
+    toast('Joined queue! Click START when ready.');
+  });
+  socket.on('dab_queueCancelled',()=>{
+    inDabQueue=false;
+    document.getElementById('dabQueueInfo').textContent='';
+    document.getElementById('dabJoinBtn').style.display='inline-block';
+    document.getElementById('dabStartBtn').style.display='none';
+    document.getElementById('dabCancelBtn').style.display='none';
+    toast('Left queue');
+  });
+  socket.on('dab_error',m=>toast(m,'err'));
+  socket.on('dab_gameStart',d=>{
+    dabRoomId=d.roomId; dabGridSize=d.gridSize;
+    myPlayerIndex=d.yourIndex; myColor=d.yourColor;
+    dabCurrentState={ lines:{}, boxes:{}, currentPlayerIndex:d.currentPlayerIndex, scores:d.playerOrder };
+    showDabGame(d);
+    renderDabGrid(d.gridSize, d.playerOrder, d.currentPlayerIndex);
+    document.getElementById('dabStatus').textContent='GAME ACTIVE';
+    inDabQueue=false;
+    document.getElementById('dabJoinBtn').style.display='inline-block';
+    document.getElementById('dabStartBtn').style.display='none';
+    document.getElementById('dabCancelBtn').style.display='none';
+    toast('Game started! '+d.playerOrder.map(p=>p.username).join(' vs '));
+  });
+  socket.on('dab_gameUpdate',d=>{
+    dabCurrentState=d;
+    updateDabLines(d.lines);
+    updateDabBoxes(d.boxes);
+    updateDabScores(d.scores, d.currentPlayerIndex);
+  });
+  socket.on('dab_gameEnd',d=>{
+    setTimeout(()=>showDabResult(d),500);
+  });
+  socket.on('dab_playerLeft',d=>{
+    toast('A player left the game!','warn');
+    dab_leaveGame();
+  });
+}
+
+// ═══════════════════════════ NAVIGATION ═══════════════════════════
+function showGameSelect(){
+  document.getElementById('gameSelect').style.display='flex';
+  document.getElementById('tttPanel').classList.remove('active');
+  document.getElementById('bingoPanel').classList.remove('active');
+  document.getElementById('dabPanel').classList.remove('active');
+}
+function loadTTT(){document.getElementById('gameSelect').style.display='none';document.getElementById('tttPanel').classList.add('active');}
+function loadBingo(){document.getElementById('gameSelect').style.display='none';document.getElementById('bingoPanel').classList.add('active');}
+function loadDAB(){document.getElementById('gameSelect').style.display='none';document.getElementById('dabPanel').classList.add('active');}
+
+// ═══════════════════════════ TTT ═══════════════════════════
+function ttt_findMatch(){socket.emit('ttt_findMatch');}
+function ttt_cancel(){socket.emit('ttt_cancelSearch');}
+function ttt_startTournament(){socket.emit('ttt_startTournament');}
+function ttt_move(i){
+  if(!tttMyTurn)return;
+  if(document.querySelector(`.tttCell[data-i="${i}"]`).classList.contains('filled'))return;
+  socket.emit('ttt_makeMove',{gameId:tttGameId,position:i});
+}
+function ttt_updateBoard(s){
+  document.getElementById('tttP1').textContent=s.player1Name;
+  document.getElementById('tttP2').textContent=s.player2Name;
+  s.board.forEach((sym,i)=>{
+    const c=document.querySelector(`.tttCell[data-i="${i}"]`);
+    if(sym){c.textContent=sym;c.classList.add('filled',sym);}
+  });
+  tttMyTurn=s.currentTurn===socket.id;
+  const t=document.getElementById('tttTurn');
+  t.textContent=tttMyTurn?'YOUR TURN':"OPPONENT'S TURN";
+  t.style.color=tttMyTurn?'#00FF00':'#FFD700';
+}
+function ttt_showBoard(){
+  document.getElementById('tttLobby').style.display='none';
+  document.getElementById('tttGame').classList.add('active');
+}
+function ttt_resetCells(){
+  document.querySelectorAll('.tttCell').forEach(c=>{c.textContent='';c.classList.remove('filled','X','O');});
+}
+function ttt_backToLobby(){
+  document.getElementById('tttGame').classList.remove('active');
+  document.getElementById('tttLobby').style.display='flex';
+  tttGameId=null;tttMyTurn=false;ttt_resetCells();
+}
+function showTTTResult(result,gameId){
+  tttGameId=gameId;
+  const box=document.getElementById('resultBox');
+  const title=document.getElementById('resultTitle');
+  const sub=document.getElementById('resultSub');
+  box.className='resultBox '+(result==='loss'?'loss':result==='draw'?'draw':'');
+  if(result==='win'){title.textContent='YOU WIN!';sub.textContent='Excellent!';}
+  else if(result==='loss'){title.textContent='YOU LOSE';sub.textContent='Better luck next time';}
+  else{title.textContent='DRAW';sub.textContent='Well played!';}
+  document.getElementById('resultScores').innerHTML='';
+  document.getElementById('rematchBtn').style.display='inline-block';
+  document.getElementById('resultModal').classList.add('show');
+}
+function closeResult(){document.getElementById('resultModal').classList.remove('show');ttt_backToLobby();}
+function requestRematch(){
+  if(tttGameId)socket.emit('ttt_rematch',tttGameId);
+  document.getElementById('resultModal').classList.remove('show');
+  toast('Rematch sent...');
+}
+
+// ═══════════════════════════ BINGO ═══════════════════════════
+function bingo_join(){socket.emit('bingo_joinRoom');}
+function bingo_leave(){
+  socket.emit('bingo_leaveRoom');
+  amHost=false;bingoActive=false;myCard=[];myMarked=[];
+  document.getElementById('bingoLobby').style.display='flex';
+  document.getElementById('bingoGame').classList.remove('active');
+  document.getElementById('hostCtrl').style.display='none';
+  document.getElementById('bingoStatus').textContent='LOBBY';
+  showGameSelect();
+}
+function showBingoGame(){
+  document.getElementById('bingoLobby').style.display='none';
+  document.getElementById('bingoGame').classList.add('active');
+}
+function bingo_startGame(){socket.emit('bingo_startGame');}
+function bingo_callNumber(){socket.emit('bingo_callNumber');}
+function bingo_resetGame(){if(confirm('Reset game?'))socket.emit('bingo_resetGame');}
+function bingo_claim(){socket.emit('bingo_claimBingo');}
+function bingo_setAutoCall(v){socket.emit('bingo_setAutoCall',parseInt(v));}
+function renderCard(){
+  const c=document.getElementById('bingoCard');c.innerHTML='';
+  myCard.forEach((num,i)=>{
+    const el=document.createElement('div');el.className='bCell';
+    if(num==='FREE'){el.textContent='FREE';el.classList.add('free','marked');}
+    else{
+      el.textContent=num;
+      if(myMarked[i])el.classList.add('marked');
+    }
+    c.appendChild(el);
+  });
+}
+function renderCalledNum(num,isLatest){
+  const c=document.getElementById('bCalledNums');
+  document.querySelectorAll('.cnum-item.recent').forEach(el=>el.classList.remove('recent'));
+  const span=document.createElement('span');
+  span.className='cnum-item'+(isLatest?' recent':'');
+  span.textContent=num;
+  c.appendChild(span);
+  c.scrollTop=c.scrollHeight;
+}
+function clearCalledNums(){document.getElementById('bCalledNums').innerHTML='';document.getElementById('bCalledCount').textContent='0';}
+function bingoLetter(n){if(n<=15)return'B';if(n<=30)return'I';if(n<=45)return'N';if(n<=60)return'G';return'O';}
+
+// ═══════════════════════════ DOTS & BOXES ═══════════════════════════
+function dab_joinQueue(){
+  const gs=parseInt(document.getElementById('dabGridSize').value);
+  const mp=parseInt(document.getElementById('dabMaxPlayers').value);
+  socket.emit('dab_joinQueue',gs);
+  document.getElementById('dabGridSize').disabled=true;
+  document.getElementById('dabMaxPlayers').disabled=true;
+}
+function dab_startGame(){
+  const gs=parseInt(document.getElementById('dabGridSize').value);
+  const mp=parseInt(document.getElementById('dabMaxPlayers').value);
+  socket.emit('dab_startWithQueue',{gridSize:gs,maxPlayers:mp});
+}
+function dab_cancelQueue(){
+  socket.emit('dab_cancelQueue');
+  document.getElementById('dabGridSize').disabled=false;
+  document.getElementById('dabMaxPlayers').disabled=false;
+  document.getElementById('dabQueueInfo').textContent='';
+}
+function dab_back(){
+  if(inDabQueue)dab_cancelQueue();
+  showGameSelect();
+}
+function dab_leaveGame(){
+  socket.emit('dab_leaveRoom');
+  dabRoomId=null;myPlayerIndex=-1;
+  document.getElementById('dabGame').classList.remove('active');
+  document.getElementById('dabLobby').style.display='flex';
+  document.getElementById('dabStatus').textContent='LOBBY';
+  loadDAB();
+}
+
+function showDabGame(d){
+  document.getElementById('dabLobby').style.display='none';
+  document.getElementById('dabGame').classList.add('active');
+  updateDabScores(d.playerOrder, d.currentPlayerIndex);
+}
+
+function renderDabGrid(gs, playerOrder, currentIdx){
+  const grid=document.getElementById('dabGrid');
+  grid.innerHTML='';
+  const totalSize=gs*CELL_SIZE;
+  grid.style.width=(totalSize+10)+'px';
+  grid.style.height=(totalSize+10)+'px';
+  grid.style.position='relative';
+
+  // Draw dots
+  for(let r=0;r<=gs;r++){
+    for(let c=0;c<=gs;c++){
+      const dot=document.createElement('div');
+      dot.className='dabDotEl';
+      dot.style.left=(c*CELL_SIZE)+'px';
+      dot.style.top=(r*CELL_SIZE)+'px';
+      grid.appendChild(dot);
+    }
+  }
+
+  // Horizontal lines
+  for(let r=0;r<=gs;r++){
+    for(let c=0;c<gs;c++){
+      const line=document.createElement('div');
+      line.className='dabLineH';
+      line.id=`dab_h_${r}_${c}`;
+      line.style.left=(c*CELL_SIZE+5)+'px';
+      line.style.top=(r*CELL_SIZE)+'px';
+      line.style.width=(CELL_SIZE-10)+'px';
+      line.onclick=()=>dab_clickLine(`h_${r}_${c}`);
+      grid.appendChild(line);
+    }
+  }
+
+  // Vertical lines
+  for(let r=0;r<gs;r++){
+    for(let c=0;c<=gs;c++){
+      const line=document.createElement('div');
+      line.className='dabLineV';
+      line.id=`dab_v_${r}_${c}`;
+      line.style.left=(c*CELL_SIZE)+'px';
+      line.style.top=(r*CELL_SIZE+5)+'px';
+      line.style.height=(CELL_SIZE-10)+'px';
+      line.onclick=()=>dab_clickLine(`v_${r}_${c}`);
+      grid.appendChild(line);
+    }
+  }
+
+  // Box backgrounds
+  for(let r=0;r<gs;r++){
+    for(let c=0;c<gs;c++){
+      const box=document.createElement('div');
+      box.className='dabBox';
+      box.id=`dab_b_${r}_${c}`;
+      box.style.left=(c*CELL_SIZE+5)+'px';
+      box.style.top=(r*CELL_SIZE+5)+'px';
+      box.style.width=(CELL_SIZE-10)+'px';
+      box.style.height=(CELL_SIZE-10)+'px';
+      box.style.position='absolute';
+      grid.appendChild(box);
+    }
+  }
+}
+
+function dab_clickLine(lineKey){
+  if(!dabRoomId)return;
+  if(dabCurrentState&&dabCurrentState.currentPlayerIndex!==myPlayerIndex){
+    toast("Not your turn!",'err');return;
+  }
+  if(dabCurrentState&&dabCurrentState.lines&&dabCurrentState.lines[lineKey])return;
+  socket.emit('dab_drawLine',{roomId:dabRoomId,lineKey});
+}
+
+function updateDabLines(lines){
+  if(!lines)return;
+  Object.entries(lines).forEach(([key,data])=>{
+    const el=document.getElementById('dab_'+key);
+    if(!el)return;
+    el.classList.add('drawn');
+    el.style.background=data.color;
+    el.style.opacity='0.9';
+    el.onclick=null;
+    // Make lines visible
+    if(key.startsWith('h_')){
+      el.style.height='4px';
+      el.style.top=el.style.top; // keep position but adjust for thickness
+    } else {
+      el.style.width='4px';
+    }
+  });
+}
+
+function updateDabBoxes(boxes){
+  if(!boxes)return;
+  Object.entries(boxes).forEach(([key,data])=>{
+    const el=document.getElementById('dab_'+key);
+    if(!el)return;
+    el.style.background=data.color;
+    el.style.opacity='0.35';
+    // Show owner initials
+    if(!el.textContent){
+      const initials=data.username.charAt(0).toUpperCase();
+      el.style.display='flex';
+      el.style.alignItems='center';
+      el.style.justifyContent='center';
+      el.style.color=data.color;
+      el.style.fontSize='16px';
+      el.style.fontWeight='bold';
+      el.style.opacity='0.9';
+      el.style.background=data.color+'33';
+      el.textContent=initials;
+    }
+  });
+}
+
+function updateDabScores(scores, currentIdx){
+  const sc=document.getElementById('dabScores');
+  sc.innerHTML=scores.map((p,i)=>`
+    <div class="dabPlayerScore ${i===currentIdx?'active-turn':''}">
+      <div class="dabDot" style="background:${p.color};width:10px;height:10px;display:inline-block;"></div>
+      <span style="color:${p.color}">${p.username}</span>
+      <span style="margin-left:auto;color:#00FF00;">${p.score}</span>
+    </div>`).join('');
+
+  const isMyTurn = currentIdx===myPlayerIndex;
+  const ti=document.getElementById('dabTurnInfo');
+  if(isMyTurn){
+    ti.textContent='YOUR TURN';
+    ti.style.color='#00FF00';
+    ti.style.borderColor='#00FF00';
+  } else {
+    ti.textContent=(scores[currentIdx]?.username||'?')+"'S TURN";
+    ti.style.color='#FFD700';
+    ti.style.borderColor='#FFD700';
+  }
+
+  const td=document.getElementById('dabTurnDisplay');
+  td.textContent=isMyTurn?'▶ YOUR TURN — draw a line!':`Waiting for ${scores[currentIdx]?.username||'?'}...`;
+  td.style.color=isMyTurn?'#00FF00':'#FFD700';
+}
+
+function showDabResult(d){
+  const box=document.getElementById('resultBox');
+  const title=document.getElementById('resultTitle');
+  const sub=document.getElementById('resultSub');
+  const scoresEl=document.getElementById('resultScores');
+
+  const iWon=d.winners.includes(myUsername);
+  box.className='resultBox '+(d.isDraw?'draw':(iWon?'':'loss'));
+  title.textContent=d.isDraw?'DRAW!':(iWon?'YOU WIN!':'YOU LOSE');
+  sub.textContent=d.isDraw?'Tied game!':'Dots & Boxes result';
+
+  scoresEl.innerHTML=d.scores.map((p,i)=>
+    `<div class="resultScoreRow" style="color:${p.color}">
+      <span>${i===0?'🥇':i===1?'🥈':'🥉'} ${p.username}</span>
+      <span>${p.score} boxes</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('rematchBtn').style.display='none';
+  document.getElementById('resultModal').classList.add('show');
+
+  // Override close to go back to dab lobby
+  document.querySelector('#resultModal .rBtn').onclick=()=>{
+    document.getElementById('resultModal').classList.remove('show');
+    document.getElementById('dabGame').classList.remove('active');
+    document.getElementById('dabLobby').style.display='flex';
+    dabRoomId=null; myPlayerIndex=-1;
+    document.getElementById('dabStatus').textContent='LOBBY';
+    document.getElementById('dabGridSize').disabled=false;
+    document.getElementById('dabMaxPlayers').disabled=false;
+  };
+}
+
+// ═══════════════════════════ SIDEBAR ═══════════════════════════
+function updateSidebar(d){
+  document.getElementById('onlineCount').textContent=d.players.length;
+  document.getElementById('sidePlayerList').innerHTML=d.players.map(p=>
+    `<div class="playerItem ${p.inGame?'busy':''}">&gt; ${p.username}${p.inGame?' <span style="color:#333;">[busy]</span>':''}</div>`
+  ).join('');
+  const renderLb=(id,data)=>{
+    document.getElementById(id).innerHTML=data.length?
+      data.map((p,i)=>`<div class="lbItem"><span>${i+1}. ${p.username}</span><span class="pts">${p.points}p</span></div>`).join(''):
+      '<div style="color:#333;font-size:10px;">No data</div>';
+  };
+  renderLb('sideTTTLb',d.tttLeaderboard||[]);
+  renderLb('sideBingoLb',d.bingoLeaderboard||[]);
+  renderLb('sideDABLb',d.dabLeaderboard||[]);
+  if(d.dabQueue>0) document.getElementById('dabQueueInfo').textContent=d.dabQueue+' player(s) in queue';
+}
+
+// ═══════════════════════════ CHAT ═══════════════════════════
+function toggleChat(){document.getElementById('chatWrap').classList.toggle('open');}
+function sendChat(){
+  const i=document.getElementById('chatIn');
+  if(i.value.trim()&&socket){socket.emit('chatMessage',i.value.trim());i.value='';}
+}
+function appendChat(un,msg){
+  const m=document.getElementById('chatMsgs');
+  m.innerHTML+=`<div class="chatMsg"><span class="cu">${un}:</span> ${msg}</div>`;
+  m.scrollTop=m.scrollHeight;
+}
+
+// ═══════════════════════════ TOAST ═══════════════════════════
+let toastT;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='show '+(type==='err'?'err':type==='warn'?'warn':'');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.className='',3500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "office-game-suite-v2",
+  "version": "4.0.0",
+  "description": "LAN Game Suite - Tic-Tac-Toe + Bingo + Dots & Boxes",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1"
+  }
+}
